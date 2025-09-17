@@ -126,11 +126,27 @@ export class PgTheme {
     // we'd have to store the object somewhere because it compares by object
     // reference rather than font family.
     let isLoaded = false;
-    for (const font of document.fonts.keys()) {
-      if (font.family === this._font.family) {
-        isLoaded = font.status === "loaded";
+    if (PgCommon.getBrowser() === "Firefox") {
+      // Using `document.fonts.keys()` in a loop results in
+      // `TypeError: document.fonts.keys() is not iterable` on Firefox.
+      //
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1729089
+      const fonts = document.fonts.keys();
+      while (1) {
+        const { done, value: font } = fonts.next();
+        if (done) break;
+        if (font.family === this._font.family) {
+          isLoaded = font.status === "loaded";
+        }
+      }
+    } else {
+      for (const font of document.fonts.keys()) {
+        if (font.family === this._font.family) {
+          isLoaded = font.status === "loaded";
+        }
       }
     }
+
     if (!isLoaded) {
       try {
         const fontFace = new FontFace(
@@ -854,6 +870,7 @@ export class PgTheme {
     // Default
     sidebar.default ??= {};
     sidebar.default.display ??= "flex";
+    sidebar.default.overflowX ??= "hidden"; // This makes content scroll work
 
     // Left
     sidebar.left ??= {};
@@ -890,7 +907,7 @@ export class PgTheme {
     sidebar.right.default.borderRight ??= `1px solid ${theme.colors.default.border}`;
     // Right title
     sidebar.right.title ??= {};
-    sidebar.right.title.height ??= "2rem";
+    sidebar.right.title.minHeight ??= "2rem";
     sidebar.right.title.borderBottom ??= `1px solid ${theme.colors.default.border};`;
     sidebar.right.title.color ??= theme.colors.default.textSecondary;
     sidebar.right.title.fontSize ??= theme.font.code.size.large;
